@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pausa para hidratação 💧</title>
+<style>
+:root{--bg:#071525;--card:#0e2238;--card2:#102b45;--text:#eef8ff;--muted:#9db4c9;--accent:#48c6ff;--accent2:#7af0d2;--gold:#ffd166;--danger:#ff6b7a}
+*{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at 20% 0%,#123b5b 0,#071525 42%,#040c15 100%);color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;min-height:100vh}
+.container{width:min(1100px,94%);margin:auto;padding:28px 0 50px}.hero{text-align:center;padding:20px 10px 28px}
+.logo{font-size:54px;filter:drop-shadow(0 0 18px #48c6ff55)}h1{font-size:clamp(32px,6vw,58px);margin:5px 0 4px;letter-spacing:-2px}.subtitle{color:var(--muted);font-size:16px}
+.grid{display:grid;grid-template-columns:1fr 1.35fr;gap:18px}@media(max-width:800px){.grid{grid-template-columns:1fr}}
+.card{background:linear-gradient(145deg,#102b45,#0a1c2e);border:1px solid #ffffff12;border-radius:22px;padding:22px;box-shadow:0 15px 45px #0005}.card h2{margin:0 0 18px;font-size:19px}
+select,input,button{font:inherit;border-radius:12px;border:1px solid #ffffff18;padding:12px;background:#071827;color:var(--text);outline:none}select,input{width:100%}label{display:block;color:var(--muted);font-size:13px;margin:12px 0 6px}
+.big{font-size:48px;font-weight:800;letter-spacing:-2px}.muted{color:var(--muted)}.progress{height:18px;background:#06121f;border-radius:99px;overflow:hidden;border:1px solid #ffffff12;margin:14px 0}.bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:.35s}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{background:#071827aa;border-radius:15px;padding:12px}.stat b{display:block;font-size:21px;margin-top:4px}.stat span{font-size:11px;color:var(--muted)}
+button{cursor:pointer;background:linear-gradient(135deg,#1599dc,#39c7b1);border:0;font-weight:800;width:100%;margin-top:12px;box-shadow:0 8px 20px #1599dc33}button:hover{transform:translateY(-1px)}button.secondary{background:#17344e}
+.entry{display:grid;grid-template-columns:1fr 120px;gap:10px;align-items:end}.note{font-size:12px;color:var(--muted);margin-top:10px}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:12px 9px;border-bottom:1px solid #ffffff0d}th{font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.7px}.rank{font-weight:800}.medal{font-size:22px}.pct{font-weight:800}.mini{height:8px;background:#071827;border-radius:99px;overflow:hidden;min-width:90px}.mini i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.badge{display:inline-flex;gap:5px;align-items:center;background:#ffffff0d;border:1px solid #ffffff10;padding:5px 9px;border-radius:99px;font-size:11px;color:var(--muted)}
+.history{max-height:330px;overflow:auto}.empty{text-align:center;color:var(--muted);padding:25px}.toast{position:fixed;right:20px;bottom:20px;background:#102b45;border:1px solid #ffffff18;padding:13px 17px;border-radius:14px;display:none;box-shadow:0 10px 30px #0008}
+footer{text-align:center;color:#6f879c;font-size:12px;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="hero">
+    <div class="logo">💧</div>
+    <h1>PAUSA PARA HIDRATAÇÃO</h1>
+    <div class="subtitle">Desafio da hidratação • começando hoje, 10/09/2026</div>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <h2>🎮 Registrar consumo</h2>
+      <label>Quem está registrando?</label>
+      <select id="person"></select>
+
+      <label>Consumo de hoje (litros)</label>
+      <div class="entry">
+        <input id="amount" type="number" min="0" max="10" step="0.001" placeholder="Ex.: 0,500">
+        <button id="add">+ Adicionar</button>
+      </div>
+      <div class="note">Use litros. Ex.: 500 mL = 0,500 L. O valor é somado ao consumo de hoje.</div>
+
+      <div style="margin-top:25px">
+        <span class="badge">🎯 Meta diária</span>
+        <div class="big" id="meta">—</div>
+        <div class="progress"><div class="bar" id="bar"></div></div>
+        <div id="todayText" class="muted">Selecione um participante.</div>
+      </div>
+
+      <div class="stats" style="margin-top:18px">
+        <div class="stat"><span>HOJE</span><b id="today">0,000 L</b></div>
+        <div class="stat"><span>% DA META</span><b id="percent">0%</b></div>
+        <div class="stat"><span>STATUS</span><b id="status">💧</b></div>
+      </div>
+
+      <button class="secondary" id="clearToday">↺ Corrigir consumo de hoje</button>
+    </section>
+
+    <section class="card">
+      <h2>🏆 Ranking — percentual da meta</h2>
+      <div class="note" style="margin:-8px 0 12px">O ranking usa o percentual da meta diária atingido. O consumo acima de 100% não aumenta a porcentagem competitiva.</div>
+      <div style="overflow:auto">
+      <table>
+        <thead><tr><th>#</th><th>Participante</th><th>Progresso</th><th>%</th></tr></thead>
+        <tbody id="ranking"></tbody>
+      </table>
+      </div>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:18px">
+    <h2>📅 Meu histórico</h2>
+    <div class="history" id="history"></div>
+  </section>
+
+  
+<!-- SHARED_PROGRESS_START -->
+<section id="sharedProgress" class="card" style="margin-top:24px;">
+  <div class="card-header">
+    <div>
+      <div class="eyebrow">VISÃO GERAL</div>
+      <h2>Progresso de todos</h2>
+      <p class="muted">Acompanhe o desempenho de todos os participantes ao longo do desafio.</p>
+    </div>
+    <div class="badge" id="sharedDateLabel">Data selecionada</div>
+  </div>
+
+  <div class="ranking-chart-wrap">
+    <div class="chart-title-row">
+      <strong>Ranking do dia</strong>
+      <span class="muted">% da meta individual</span>
+    </div>
+    <div id="dailyRankingChart" class="bar-chart" aria-label="Gráfico de ranking diário"></div>
+  </div>
+
+  <div class="weekly-history" style="margin-top:22px;">
+    <div class="chart-title-row">
+      <div>
+        <strong>Histórico semanal</strong>
+        <div class="muted">Confira a colocação ao final de cada semana, aos sábados.</div>
+      </div>
+      <select id="weekHistorySelect" aria-label="Selecionar semana"></select>
+    </div>
+    <div id="weeklyRankingChart" class="bar-chart" aria-label="Gráfico de colocações semanais"></div>
+  </div>
+</section>
+<!-- SHARED_PROGRESS_END -->
+
+<footer>Pausa para hidratação • dados compartilhados online • atualização automática.</footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const PEOPLE=[['Ana',1.692],['Jullyane',2.500],['Fátima',2.695],['Pedro',2.275],['Renan',3.300],['Becky',2.170],['Shaiane',2.345]];
+const START='2026-09-10', END='2026-12-14';
+const SUPABASE_URL='https://qkjwtajjgosccwkemkhk.supabase.co';
+const SUPABASE_KEY='sb_publishable_51ZUaN0gJFFiGgCKQsfyFQ_IhV3idKl';
+let selected='Ana', selectedDate=START, records={};
+const $=id=>document.getElementById(id);
+const fmt=n=>Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:3,maximumFractionDigits:3});
+const pct=(v,m)=>m>0?Math.round(Math.min(Number(v||0)/m*100,100)):0;
+const headers=(extra={})=>({apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,...extra});
+const api=async(path,opts={})=>{const r=await fetch(SUPABASE_URL+'/rest/v1/'+path,{...opts,headers:headers(opts.headers||{})});if(!r.ok)throw new Error(await r.text()||('HTTP '+r.status));return r.status===204?null:r.json()};
+function parseDate(s){const [y,m,d]=s.split('-').map(Number);return new Date(Date.UTC(y,m-1,d))}
+function iso(d){return d.toISOString().slice(0,10)}
+function addDays(s,n){const d=parseDate(s);d.setUTCDate(d.getUTCDate()+n);return iso(d)}
+function formatDate(s){return parseDate(s).toLocaleDateString('pt-BR',{timeZone:'UTC'})}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function getDay(name,date=selectedDate){return Number(records[name]?.days?.[date]||0)}
+async function loadRecords(){
+  const [ps,rs]=await Promise.all([api('participantes?select=id,nome,meta_litros&ativo=eq.true&order=nome.asc'),api('registros_hidratacao?select=participante_id,data,consumo_litros&order=data.asc')]);
+  const idName={}; records={};
+  ps.forEach(p=>{idName[p.id]=p.nome;records[p.nome]={meta:Number(p.meta_litros),days:{}}});
+  rs.forEach(r=>{const n=idName[r.participante_id];if(n&&records[n])records[n].days[r.data]=Number(r.consumo_litros)||0});
+  render();
+}
+function render(){selected=$('person').value||selected;selectedDate=$('date').value||selectedDate;const p=records[selected]||{meta:2.17,days:{}},v=getDay(selected),pc=pct(v,p.meta);$('meta').textContent=fmt(p.meta)+' L';$('today').textContent=fmt(v)+' L';$('percent').textContent=pc+'%';$('bar').style.width=pc+'%';$('status').textContent=v>=p.meta?'🏆':'💧';$('todayText').textContent=v>=p.meta?'Meta alcançada! Excelente. 🏆':`Faltam ${fmt(Math.max(p.meta-v,0))} L para sua meta.`;renderRanking();renderHistory();renderSharedDaily();renderWeekOptions();renderWeeklyHistory()}
+function renderRanking(){const rows=PEOPLE.map(([name,meta])=>({name,meta,val:getDay(name),pct:pct(getDay(name),meta)})).sort((a,b)=>b.pct-a.pct||b.val-a.val||a.name.localeCompare(b.name));const medals=['🥇','🥈','🥉'];$('ranking').innerHTML=rows.map((r,i)=>`<tr><td class="rank">${medals[i]||i+1}</td><td><b>${esc(r.name)}</b><br><span class="muted">${fmt(r.val)} / ${fmt(r.meta)} L</span></td><td><div class="mini"><i style="width:${r.pct}%"></i></div></td><td class="pct">${r.pct}%</td></tr>`).join('')}
+function renderHistory(){const days=Object.entries(records[selected]?.days||{}).filter(([d])=>d>=START&&d<=END).sort((a,b)=>b[0].localeCompare(a[0]));$('history').innerHTML=days.length?`<table><thead><tr><th>Data</th><th>Consumo</th><th>Meta</th><th>%</th><th>Status</th></tr></thead><tbody>${days.map(([d,v])=>{const m=records[selected].meta;return `<tr><td>${formatDate(d)}</td><td>${fmt(v)} L</td><td>${fmt(m)} L</td><td>${pct(v,m)}%</td><td>${v>=m?'🏆 Meta':'💧 Em andamento'}</td></tr>`}).join('')}</tbody></table>`:"<div class='empty'>Ainda não há registros. Comece hoje! 💧</div>"}
+function renderSharedDaily(){const el=$('dailyRankingChart');if(!el)return;const date=selectedDate;$('sharedDateLabel').textContent='Dia '+formatDate(date);const rows=PEOPLE.map(([name,meta])=>({name,meta,val:getDay(name,date),percent:pct(getDay(name,date),meta)})).sort((a,b)=>b.percent-a.percent||b.val-a.val||a.name.localeCompare(b.name));const hues=[340,35,55,155,195,250,285];el.innerHTML=rows.map((r,i)=>`<div class="rank-row"><div class="rank-name"><span class="rank-num">${i+1}º</span><strong>${esc(r.name)}</strong></div><div class="rank-track"><div class="rank-fill" style="width:${r.percent}%;background:hsl(${hues[i]} 82% 55%)"></div></div><div class="rank-value">${r.percent}%</div></div>`).join('')}
+function getWeekRanges(){const out=[];let s=START;while(s<=END){const d=parseDate(s),toSat=6-d.getUTCDay();let e=addDays(s,toSat);if(e>END)e=END;out.push({start:s,end:e,saturday:parseDate(e).getUTCDay()===6});if(e>=END)break;s=addDays(e,1)}return out}
+function weeklyScore(name,r){const m=records[name]?.meta||0;if(!m)return 0;let total=0,days=0,d=r.start;while(d<=r.end){total+=pct(getDay(name,d),m);days++;d=addDays(d,1)}return days?total/days:0}
+function renderWeekOptions(){const sel=$('weekHistorySelect');if(!sel)return;const ranges=getWeekRanges(),old=sel.value;sel.innerHTML=ranges.map((r,i)=>`<option value="${i}">${formatDate(r.start)} – ${formatDate(r.end)}${r.saturday?' • fechamento sábado':' • semana final'}</option>`).join('');const idx=ranges.findIndex(r=>selectedDate>=r.start&&selectedDate<=r.end);sel.value=old!==''&&Number(old)<ranges.length?old:String(Math.max(0,idx))}
+function renderWeeklyHistory(){const sel=$('weekHistorySelect'),el=$('weeklyRankingChart');if(!sel||!el||sel.value==='')return;const r=getWeekRanges()[Number(sel.value)];if(!r)return;const rows=PEOPLE.map(([name,meta])=>({name,percent:weeklyScore(name,r)})).sort((a,b)=>b.percent-a.percent||a.name.localeCompare(b.name));const hues=[340,35,55,155,195,250,285];el.innerHTML=rows.map((x,i)=>`<div class="rank-row"><div class="rank-name"><span class="rank-num">${i+1}º</span><strong>${esc(x.name)}</strong></div><div class="rank-track"><div class="rank-fill" style="width:${Math.min(100,x.percent)}%;background:hsl(${hues[i]} 82% 55%)"></div></div><div class="rank-value">${Math.round(x.percent)}%</div></div>`).join('')}
+async function saveConsumption(name,date,value){const p=await api('participantes?select=id&nome=eq.'+encodeURIComponent(name));if(!p.length)throw Error('Participante não encontrado.');const r=await fetch(SUPABASE_URL+'/rest/v1/registros_hidratacao?on_conflict=participante_id,data',{method:'POST',headers:headers({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({participante_id:p[0].id,data,consumo_litros:Number(value.toFixed(3))})});if(!r.ok)throw Error(await r.text()||'Falha ao salvar.')}
+$('person').innerHTML=PEOPLE.map(p=>`<option value="${esc(p[0])}">${esc(p[0])}</option>`).join('');
+if(!$('date')){const lab=document.createElement('label');lab.textContent='Data do registro';const inp=document.createElement('input');inp.id='date';inp.type='date';inp.min=START;inp.max=END;const person=$('person');person.parentNode.insertBefore(inp,person.nextSibling);person.parentNode.insertBefore(lab,inp)}
+$('date').min=START;$('date').max=END;$('date').value=(new Date().toISOString().slice(0,10)>=START&&new Date().toISOString().slice(0,10)<=END)?new Date().toISOString().slice(0,10):START;$('person').value=selected;
+$('person').addEventListener('change',render);$('date').addEventListener('change',render);$('weekHistorySelect')?.addEventListener('change',renderWeeklyHistory);
+$('add').addEventListener('click',async()=>{const n=parseFloat(String($('amount').value).replace(',','.')),date=$('date').value;if(!Number.isFinite(n)||n<=0){toast('Digite um volume válido.');return}if(date<START||date>END){toast('Escolha uma data dentro do desafio.');return}$('add').disabled=true;try{await saveConsumption(selected,date,getDay(selected,date)+n);await loadRecords();$('amount').value='';toast('Consumo registrado para todos! 💧')}catch(e){console.error(e);toast('Erro ao salvar o consumo.')}finally{$('add').disabled=false}});
+$('amount').addEventListener('keydown',e=>{if(e.key==='Enter')$('add').click()});$('clearToday').textContent='↺ Corrigir consumo do dia selecionado';$('clearToday').addEventListener('click',async()=>{const date=$('date').value;if(!confirm('Zerar o consumo de '+selected+' em '+formatDate(date)+'?'))return;try{const p=await api('participantes?select=id&nome=eq.'+encodeURIComponent(selected));const r=await fetch(SUPABASE_URL+'/rest/v1/registros_hidratacao?participante_id=eq.'+p[0].id+'&data=eq.'+date,{method:'DELETE',headers:headers()});if(!r.ok)throw Error();await loadRecords();toast('Registro corrigido. 💧')}catch(e){toast('Não foi possível corrigir o registro.')}});
+function toast(t){$('toast').textContent=t;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',2200)}
+(async function init(){try{await loadRecords()}catch(e){console.error(e);toast('Não foi possível conectar ao banco. Verifique o Supabase.')}setInterval(async()=>{try{await loadRecords()}catch(e){console.warn(e)}},2000)})();
+</script>
+
+<script>
+/* SHARED_PROGRESS_SCRIPT_START */
+(function () {
+  "use strict";
+
+  const participants = [
+    {name:"Ana", goal:1.692},
+    {name:"Jullyane", goal:2.500},
+    {name:"Fátima", goal:2.695},
+    {name:"Pedro", goal:2.275},
+    {name:"Renan", goal:3.300},
+    {name:"Becky", goal:2.170},
+    {name:"Shaiane", goal:2.345}
+  ];
+
+  const START = "2026-09-10";
+  const END = "2026-12-14";
+
+  const root = document.getElementById("sharedProgress");
+  if (!root) return;
+
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+
+  function parseDate(s) {
+    const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? new Date(Date.UTC(+m[1], +m[2]-1, +m[3])) : null;
+  }
+  function iso(d) {
+    return d.toISOString().slice(0,10);
+  }
+  function addDays(s, n) {
+    const d = parseDate(s);
+    d.setUTCDate(d.getUTCDate()+n);
+    return iso(d);
+  }
+  function pct(value, goal) {
+    return goal > 0 ? Math.max(0, Math.min(100, value / goal * 100)) : 0;
+  }
+  function fmtDate(s) {
+    const d = parseDate(s);
+    return d.toLocaleDateString("pt-BR", {timeZone:"UTC", day:"2-digit", month:"2-digit"});
+  }
+
+  function getSelectedDate() {
+    const candidates = [
+      document.querySelector("#date"),
+      document.querySelector("#data"),
+      document.querySelector('input[type="date"]')
+    ];
+    const el = candidates.find(x => x && x.value);
+    const value = el ? el.value : START;
+    return (value >= START && value <= END) ? value : START;
+  }
+
+  function readRecords() {
+    const out = {};
+    participants.forEach(p => out[p.name] = {});
+    // Try localStorage keys used by the existing prototype.
+    try {
+      for (let i=0; i<localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        let obj;
+        try { obj = JSON.parse(raw); } catch (_) { continue; }
+        scanObject(obj, out);
+      }
+    } catch (_) {}
+
+    // Also inspect likely in-page state variables, when available.
+    ["state","data","records","dailyRecords","consumptionData","hydrationData"].forEach(k => {
+      try { if (window[k]) scanObject(window[k], out); } catch (_) {}
+    });
+    return out;
+  }
+
+  function scanObject(obj, out, depth) {
+    depth = depth || 0;
+    if (depth > 5 || obj == null) return;
+
+    if (Array.isArray(obj)) {
+      obj.forEach(x => scanObject(x, out, depth+1));
+      return;
+    }
+    if (typeof obj !== "object") return;
+
+    // Common record shapes: {participant/name, date, liters/consumption/value}
+    const name = obj.participant || obj.participante || obj.name || obj.nome;
+    const date = obj.date || obj.data;
+    const value = obj.liters ?? obj.litros ?? obj.consumption ?? obj.consumo ?? obj.value ?? obj.valor;
+    if (name && date && value != null && out[name] && /^\d{4}-\d{2}-\d{2}$/.test(String(date))) {
+      const v = Number(String(value).replace(",", "."));
+      if (Number.isFinite(v) && v >= 0) out[name][date] = v;
+    }
+
+    // Common nested shape: { "Ana": { "2026-09-10": 1.2 } }
+    Object.keys(obj).forEach(k => {
+      if (out[k] && obj[k] && typeof obj[k] === "object") {
+        Object.keys(obj[k]).forEach(d => {
+          if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+            const v = Number(String(obj[k][d]).replace(",", "."));
+            if (Number.isFinite(v) && v >= 0) out[k][d] = v;
+          }
+        });
+      }
+      if (depth < 5) scanObject(obj[k], out, depth+1);
+    });
+  }
+
+  function rankForDate(date) {
+    const records = readRecords();
+    return participants.map(p => ({
+      ...p,
+      liters: Number(records[p.name]?.[date] || 0),
+      percent: pct(Number(records[p.name]?.[date] || 0), p.goal)
+    })).sort((a,b) => b.percent-a.percent || b.liters-a.liters || a.name.localeCompare(b.name));
+  }
+
+  function weekEndFor(date) {
+    const d = parseDate(date);
+    const dow = d.getUTCDay(); // Sunday 0, Saturday 6
+    return addDays(date, 6-dow);
+  }
+
+  function weekStartForSaturday(sat) {
+    return addDays(sat, -6);
+  }
+
+  function weeklyPercent(p, start, end) {
+    const records = readRecords();
+    let total = 0, days = 0;
+    let d = start;
+    while (d <= end) {
+      if (records[p.name]?.[d] != null) {
+        total += Number(records[p.name][d]) || 0;
+        days++;
+      }
+      d = addDays(d,1);
+    }
+    // Fair weekly measure: average daily achievement over recorded days.
+    return days ? pct(total/days, p.goal) : 0;
+  }
+
+  function saturate(x) {
+    return Math.max(0, Math.min(100, x));
+  }
+
+  function renderDaily() {
+    const date = getSelectedDate();
+    const label = document.getElementById("sharedDateLabel");
+    if (label) label.textContent = "Dia " + fmtDate(date);
+
+    const data = rankForDate(date);
+    const el = document.getElementById("dailyRankingChart");
+    if (!el) return;
+
+    el.innerHTML = data.map((p,i) => {
+      const rank = i+1;
+      const width = saturate(p.percent);
+      const hue = [340, 35, 55, 155, 195, 250, 285][i];
+      return `<div class="rank-row">
+        <div class="rank-name"><span class="rank-num">${rank}º</span><strong>${esc(p.name)}</strong></div>
+        <div class="rank-track"><div class="rank-fill" style="width:${width}%;background:hsl(${hue} 82% 55%)"></div></div>
+        <div class="rank-value">${p.percent.toFixed(0)}%</div>
+      </div>`;
+    }).join("");
+  }
+
+  function renderWeekSelect() {
+    const select = document.getElementById("weekHistorySelect");
+    if (!select) return;
+    const options = [];
+    let s = START;
+    while (s <= END) {
+      const e = weekEndFor(s);
+      const sat = e <= END ? e : END;
+      if (parseDate(sat).getUTCDay() === 6 || sat === END) {
+        options.push(`<option value="${sat}">${fmtDate(s)} – ${fmtDate(sat)}${sat===END ? " (final)" : ""}</option>`);
+      }
+      s = addDays(e, 1);
+    }
+    select.innerHTML = options.join("");
+    const current = getSelectedDate();
+    const currentSat = weekEndFor(current);
+    const usable = [...select.options].some(o => o.value === currentSat);
+    if (usable) select.value = currentSat;
+  }
+
+  function renderWeek() {
+    const select = document.getElementById("weekHistorySelect");
+    const el = document.getElementById("weeklyRankingChart");
+    if (!select || !el || !select.value) return;
+
+    const sat = select.value;
+    const start = weekStartForSaturday(sat);
+    const data = participants.map(p => ({
+      ...p,
+      percent: weeklyPercent(p, start, sat)
+    })).sort((a,b) => b.percent-a.percent || a.name.localeCompare(b.name));
+
+    el.innerHTML = data.map((p,i) => {
+      const rank = i+1;
+      const width = saturate(p.percent);
+      const hue = [340, 35, 55, 155, 195, 250, 285][i];
+      return `<div class="rank-row">
+        <div class="rank-name"><span class="rank-num">${rank}º</span><strong>${esc(p.name)}</strong></div>
+        <div class="rank-track"><div class="rank-fill" style="width:${width}%;background:hsl(${hue} 82% 55%)"></div></div>
+        <div class="rank-value">${p.percent.toFixed(0)}%</div>
+      </div>`;
+    }).join("");
+  }
+
+  const style = document.createElement("style");
+  style.textContent = `
+    #sharedProgress .card-header,#sharedProgress .chart-title-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+    #sharedProgress .eyebrow{font-size:.72rem;font-weight:800;letter-spacing:.12em;opacity:.65}
+    #sharedProgress .muted{opacity:.68;font-size:.88rem}
+    #sharedProgress .badge{padding:7px 11px;border-radius:999px;background:rgba(120,120,120,.12);font-size:.8rem;font-weight:700}
+    #sharedProgress .bar-chart{display:grid;gap:11px;margin-top:14px}
+    #sharedProgress .rank-row{display:grid;grid-template-columns:112px minmax(120px,1fr) 58px;align-items:center;gap:10px}
+    #sharedProgress .rank-name{display:flex;gap:8px;align-items:center;min-width:0}
+    #sharedProgress .rank-name strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #sharedProgress .rank-num{font-weight:900;min-width:30px}
+    #sharedProgress .rank-track{height:25px;border-radius:999px;background:rgba(120,120,120,.12);overflow:hidden}
+    #sharedProgress .rank-fill{height:100%;border-radius:999px;min-width:2px;transition:width .35s ease}
+    #sharedProgress .rank-value{text-align:right;font-weight:800}
+    #sharedProgress select{min-height:42px;border-radius:10px;padding:8px 12px;border:1px solid rgba(120,120,120,.3);background:inherit}
+    @media(max-width:600px){
+      #sharedProgress .rank-row{grid-template-columns:88px minmax(90px,1fr) 48px;gap:7px}
+      #sharedProgress .rank-name{font-size:.86rem}
+      #sharedProgress .rank-track{height:22px}
+    }
+  `;
+  document.head.appendChild(style);
+
+  const select = document.getElementById("weekHistorySelect");
+  if (select) select.addEventListener("change", renderWeek);
+
+  // Update continuously while participants are entering data in the same browser.
+  renderWeekSelect();
+  renderDaily();
+  renderWeek();
+  setInterval(() => {
+    renderWeekSelect();
+    renderDaily();
+    renderWeek();
+  }, 1000);
+
+  // React immediately to the site's date/input changes.
+  document.addEventListener("input", renderDaily, true);
+  document.addEventListener("change", renderDaily, true);
+})();
+/* SHARED_PROGRESS_SCRIPT_END */
+</script>
+
+</body>
+</html>
