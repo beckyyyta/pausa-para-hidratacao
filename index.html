@@ -145,12 +145,38 @@ function getWeekRanges(){const out=[];let s=START;while(s<=END){const d=parseDat
 function weeklyScore(name,r){const m=records[name]?.meta||0;if(!m)return 0;let total=0,days=0,d=r.start;while(d<=r.end){total+=pct(getDay(name,d),m);days++;d=addDays(d,1)}return days?total/days:0}
 function renderWeekOptions(){const sel=$('weekHistorySelect');if(!sel)return;const ranges=getWeekRanges(),old=sel.value;sel.innerHTML=ranges.map((r,i)=>`<option value="${i}">${formatDate(r.start)} – ${formatDate(r.end)}${r.saturday?' • fechamento sábado':' • semana final'}</option>`).join('');const idx=ranges.findIndex(r=>selectedDate>=r.start&&selectedDate<=r.end);sel.value=old!==''&&Number(old)<ranges.length?old:String(Math.max(0,idx))}
 function renderWeeklyHistory(){const sel=$('weekHistorySelect'),el=$('weeklyRankingChart');if(!sel||!el||sel.value==='')return;const r=getWeekRanges()[Number(sel.value)];if(!r)return;const rows=PEOPLE.map(([name,meta])=>({name,percent:weeklyScore(name,r)})).sort((a,b)=>b.percent-a.percent||a.name.localeCompare(b.name));const hues=[340,35,55,155,195,250,285];el.innerHTML=rows.map((x,i)=>`<div class="rank-row"><div class="rank-name"><span class="rank-num">${i+1}º</span><strong>${esc(x.name)}</strong></div><div class="rank-track"><div class="rank-fill" style="width:${Math.min(100,x.percent)}%;background:hsl(${hues[i]} 82% 55%)"></div></div><div class="rank-value">${Math.round(x.percent)}%</div></div>`).join('')}
-async function saveConsumption(name,date,value){const p=await api('participantes?select=id&nome=eq.'+encodeURIComponent(name));if(!p.length)throw Error('Participante não encontrado.');const r=await fetch(SUPABASE_URL+'/rest/v1/registros_hidratacao?on_conflict=participante_id,data',{method:'POST',headers:headers({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({participante_id:p[0].id,data,consumo_litros:Number(value.toFixed(3))})});if(!r.ok)throw Error(await r.text()||'Falha ao salvar.')}
+async function saveConsumption(name,date,value){
+  const p=await api('participantes?select=id&nome=eq.'+encodeURIComponent(name));
+  if(!p.length)throw Error('Participante não encontrado.');
+  const participantId=p[0].id;
+  const payload={participante_id:participantId,data,consumo_litros:Number(Number(value).toFixed(3))};
+  const existing=await api('registros_hidratacao?select=id&participante_id=eq.'+encodeURIComponent(participantId)+'&data=eq.'+encodeURIComponent(date));
+  let r;
+  if(existing.length){
+    r=await fetch(SUPABASE_URL+'/rest/v1/registros_hidratacao?id=eq.'+encodeURIComponent(existing[0].id),{
+      method:'PATCH',
+      headers:headers({'Content-Type':'application/json',Prefer:'return=minimal'}),
+      body:JSON.stringify({consumo_litros:payload.consumo_litros})
+    });
+  }else{
+    r=await fetch(SUPABASE_URL+'/rest/v1/registros_hidratacao',{
+      method:'POST',
+      headers:headers({'Content-Type':'application/json',Prefer:'return=minimal'}),
+      body:JSON.stringify(payload)
+    });
+  }
+  if(!r.ok){
+    let detail='';
+    try{detail=await r.text()}catch(_){ }
+    console.error('Supabase save error:',r.status,detail);
+    throw Error(detail||('HTTP '+r.status));
+  }
+}
 $('person').innerHTML=PEOPLE.map(p=>`<option value="${esc(p[0])}">${esc(p[0])}</option>`).join('');
 if(!$('date')){const lab=document.createElement('label');lab.textContent='Data do registro';const inp=document.createElement('input');inp.id='date';inp.type='date';inp.min=START;inp.max=END;const person=$('person');person.parentNode.insertBefore(inp,person.nextSibling);person.parentNode.insertBefore(lab,inp)}
 $('date').min=START;$('date').max=END;$('date').value=(new Date().toISOString().slice(0,10)>=START&&new Date().toISOString().slice(0,10)<=END)?new Date().toISOString().slice(0,10):START;$('person').value=selected;
 $('person').addEventListener('change',render);$('date').addEventListener('change',render);$('weekHistorySelect')?.addEventListener('change',renderWeeklyHistory);
-$('add').addEventListener('click',async()=>{const n=parseFloat(String($('amount').value).replace(',','.')),date=$('date').value;if(!Number.isFinite(n)||n<=0){toast('Digite um volume válido.');return}if(date<START||date>END){toast('Escolha uma data dentro do desafio.');return}$('add').disabled=true;try{await saveConsumption(selected,date,getDay(selected,date)+n);await loadRecords();$('amount').value='';toast('Consumo registrado para todos! 💧')}catch(e){console.error(e);toast('Erro ao salvar o consumo.')}finally{$('add').disabled=false}});
+$('add').addEventListener('click',async()=>{const n=parseFloat(String($('amount').value).replace(',','.')),date=$('date').value;if(!Number.isFinite(n)||n<=0){toast('Digite um volume válido.');return}if(date<START||date>END){toast('Escolha uma data dentro do desafio.');return}$('add').disabled=true;try{await saveConsumption(selected,date,getDay(selected,date)+n);await loadRecords();$('amount').value='';toast('Consumo registrado! 💧')}catch(e){console.error(e);const msg=String(e?.message||'').replace(/\s+/g,' ').slice(0,180);toast('Erro ao salvar: '+(msg||'verifique a conexão com o banco.'))}finally{$('add').disabled=false}});
 $('amount').addEventListener('keydown',e=>{if(e.key==='Enter')$('add').click()});$('clearToday').textContent='↺ Corrigir consumo do dia selecionado';$('clearToday').addEventListener('click',async()=>{const date=$('date').value;if(!confirm('Zerar o consumo de '+selected+' em '+formatDate(date)+'?'))return;try{const p=await api('participantes?select=id&nome=eq.'+encodeURIComponent(selected));const r=await fetch(SUPABASE_URL+'/rest/v1/registros_hidratacao?participante_id=eq.'+p[0].id+'&data=eq.'+date,{method:'DELETE',headers:headers()});if(!r.ok)throw Error();await loadRecords();toast('Registro corrigido. 💧')}catch(e){toast('Não foi possível corrigir o registro.')}});
 function toast(t){$('toast').textContent=t;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',2200)}
 (async function init(){try{await loadRecords()}catch(e){console.error(e);toast('Não foi possível conectar ao banco. Verifique o Supabase.')}setInterval(async()=>{try{await loadRecords()}catch(e){console.warn(e)}},2000)})();
