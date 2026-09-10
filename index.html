@@ -149,7 +149,7 @@ async function saveConsumption(name,date,value){
   const p=await api('participantes?select=id&nome=eq.'+encodeURIComponent(name));
   if(!p.length)throw Error('Participante não encontrado.');
   const participantId=p[0].id;
-  const payload={participante_id:participantId,data,consumo_litros:Number(Number(value).toFixed(3))};
+  const payload={participante_id:participantId,data:date,consumo_litros:Number(Number(value).toFixed(3))};
   const existing=await api('registros_hidratacao?select=id&participante_id=eq.'+encodeURIComponent(participantId)+'&data=eq.'+encodeURIComponent(date));
   let r;
   if(existing.length){
